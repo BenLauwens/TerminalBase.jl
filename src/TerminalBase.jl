@@ -139,13 +139,14 @@ function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Colo
     print(terminal, TerminalCommand("48;"), background, 'm')
     print(terminal, char^(height * width))
     print(terminal, TerminalCommand('H'))
-    @async begin
+    @async let
+        io = IOBuffer()
+        screen = SCREEN[]
+        terminal = screen.terminal
+        inputs = screen.inputs
         while true
-            screen = SCREEN[]
-            terminal = screen.terminal
-            inputs = screen.inputs
             c = read(terminal, Char)
-            if c == '\e'
+            if c === '\e'
                 print(io, c)
                 while bytesavailable(terminal) > 0
                     c = read(terminal, Char)
