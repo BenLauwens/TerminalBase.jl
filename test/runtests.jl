@@ -8,13 +8,31 @@ using Test
     screen_box(5, 50, 4, 50; type=BOX_HEAVY)
     screen_update()
     sleep(2)
-    screen_box(2, 110, 7, 60; style=Style(;background=WHITE, foreground=RED), type = BOX_ROUNDED)
+    n = 2
+    m = 110
+    screen_box(n, m, 7, 60; style=Style(;background=WHITE, foreground=RED), type = BOX_ROUNDED)
     screen_update()
     while true
         c = screen_input()
-        if c == 'q'
+        screen_cls(n, m, 7, 60)
+        if c === "q"
             break
+        elseif c === "\e[A"
+            n -= 1
+        elseif c === "\e[B"
+            n += 1
+        elseif c === "\e[C"
+            m += 1
+        elseif c === "\e[D"
+            m -= 1
+        elseif startswith(c, "\e[M ")
+            mouse = transcode(UInt8, c[5:6])
+            y = Int(mouse[2]) - 32
+            x = Int(mouse[1]) - 32
+            screen_cls(screen_height(), 5, 1, 20)
+            screen_string("x = " * string(x) * "; y = " * string(y), screen_height(), 5)
         end
+        screen_box(n, m, 7, 60; style=Style(;background=WHITE, foreground=RED), type = BOX_ROUNDED)
         screen_string(repr(c), 10, 10)
         screen_update()
     end

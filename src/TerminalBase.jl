@@ -6,7 +6,7 @@ export BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
 export BRIGHTBLACK, BRIGHTRED, BRIGHTGREEN, BRIGHTYELLOW, BRIGHTBLUE, BRIGHTMAGENTA, BRIGHTCYAN, BRIGHTWHITE
 export BOX_LIGHT, BOX_ROUNDED, BOX_HEAVY, BOX_DOUBLE
 export Style, Color256, ColorRGB
-export screen_init, screen_update, screen_box, screen_string, screen_char, screen_input
+export screen_init, screen_update, screen_box, screen_string, screen_char, screen_input, screen_cls
 export screen_foreground, screen_background, screen_width, screen_height
 
 struct TerminalCommand
@@ -14,7 +14,7 @@ struct TerminalCommand
 end
 
 function Base.show(io::IO, cmd::TerminalCommand)
-    print(io, REPL.Terminals.CSI, cmd.v)
+    print(io, "\e[", cmd.v)
 end
 
 abstract type Color end
@@ -112,7 +112,7 @@ struct Screen
     foreground::Color
     buffers::NTuple{3,Matrix{Cell}}
     current::Ref{Int}
-    inputs::Channel{Union{Char,String}}
+    inputs::Channel{String}
 end
 
 function __init__()
@@ -127,7 +127,7 @@ function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Colo
         fill(Cell(char, Style(; background, foreground)), width, height),
         fill(Cell(char, Style(; background, foreground)), width, height)
     )
-    inputs = Channel{Union{Char,String}}()
+    inputs = Channel{String}()
     SCREEN[] = Screen(terminal, width, height, background, foreground, buffers, Ref(1), inputs)
     REPL.Terminals.raw!(terminal, true)
     print(terminal, TerminalCommand("?1049h"))
@@ -141,29 +141,26 @@ function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Colo
     print(terminal, TerminalCommand('H'))
     @async let
         io = IOBuffer()
-        screen = SCREEN[]
-        terminal = screen.terminal
-        inputs = screen.inputs
+        terminal = SCREEN[].terminal
+        inputs = SCREEN[].inputs
         while true
             c = read(terminal, Char)
+            print(io, c)
             if c === '\e'
-                print(io, c)
                 while bytesavailable(terminal) > 0
                     c = read(terminal, Char)
                     print(io, c)
                 end
-                put!(inputs, String(take!(io)))
-            else
-                put!(inputs, c)
             end
+            put!(inputs, String(take!(io)))
         end
     end
     atexit() do
-        screen = SCREEN[]
-        print(screen.terminal, TerminalCommand("?1000l"))
-        print(screen.terminal, TerminalCommand("?25h"))
-        print(screen.terminal, TerminalCommand("?1049l"))
-        REPL.Terminals.raw!(screen.terminal, false)
+        terminal = SCREEN[].terminal
+        print(terminal, TerminalCommand("?1000l"))
+        print(terminal, TerminalCommand("?25h"))
+        print(terminal, TerminalCommand("?1049l"))
+        REPL.Terminals.raw!(terminal, false)
     end
     nothing
 end
@@ -208,7 +205,7 @@ function screen_char(char::Char, row::Integer, col::Integer;
     style::Style=Style(; background=screen_background(), foreground=screen_foreground())
 )
     screen = SCREEN[]
-    if row <= screen.height && col <= screen.width
+    if 0 < row <= screen.height && 0 < col <= screen.width
         screen.buffers[screen.current[]][col, row] = Cell(char, style)
     end
     nothing
@@ -219,6 +216,15 @@ function screen_string(str::String, row::Integer, col::Integer;
 )
     for (index, char) in enumerate(str)
         screen_char(char, row, col + index - 1; style)
+    end
+    nothing
+end
+
+function screen_cls(startrow::Integer, startcol::Integer, height::Integer, width::Integer;
+    style::Style=Style(; background=screen_background(), foreground=screen_foreground())
+)
+    for row in startrow:startrow+height-1
+        screen_string(' '^width, row, startcol; style)
     end
     nothing
 end
