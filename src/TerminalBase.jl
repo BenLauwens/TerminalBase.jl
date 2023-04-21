@@ -7,9 +7,9 @@ export ESCAPE, TAB, SHIFT_TAB, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10
 export BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
 export BRIGHT_BLACK, BRIGHT_RED, BRIGHT_GREEN, BRIGHT_YELLOW, BRIGHT_BLUE, BRIGHT_MAGENTA, BRIGHT_CYAN, BRIGHT_WHITE
 export LIGHT, ROUNDED, HEAVY, DOUBLE
-export Style, Color256, ColorRGB
+export Style, Color, Color256, ColorRGB
 export screen_init, screen_update, screen_box, screen_string, screen_char, screen_input, screen_box_clear
-export screen_foreground, screen_background, screen_width, screen_height
+export screen_color, screen_size
 
 const UP = "\e[A"
 const DOWN = "\e[B"
@@ -134,18 +134,11 @@ end
 
 struct Screen
     terminal::Terminals.TTYTerminal
-    width::Int
-    height::Int
     background::Color
     foreground::Color
     buffers::NTuple{3,Matrix{Cell}}
     current::Ref{Int}
     inputs::Channel{String}
-end
-
-function __init__()
-    screen_init()
-    nothing
 end
 
 function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Color=GREEN)
@@ -156,7 +149,7 @@ function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Colo
         fill(Cell(char, Style(; background, foreground)), width, height)
     )
     inputs = Channel{String}()
-    SCREEN[] = Screen(terminal, width, height, background, foreground, buffers, Ref(1), inputs)
+    SCREEN[] = Screen(terminal, background, foreground, buffers, Ref(1), inputs)
     Terminals.raw!(terminal, true)
     #print(terminal, TerminalCommand("?1049h"))
     print(terminal, TerminalCommand("?25l"))
@@ -206,7 +199,7 @@ function screen_update(row::Integer=0, col::Integer=0)
     io = IOBuffer()
     print(io, TerminalCommand("H"))
     for (index, cell) in enumerate(current)
-        n, m = divrem(index - 1, screen.width)
+        n, m = divrem(index - 1, screen_size(2))
         if cell !== previous[index]
             if oldindex !== index - 1
                 print(io, TerminalCommand(string(n + 1) * ';' * string(m + 1) * 'H'))
@@ -236,17 +229,18 @@ const HEAVY = ('┏', '━', '┓', '┃', '┗', '┛')
 const DOUBLE = ('╔', '═', '╗', '║', '╚', '╝')
 
 function screen_char(char::Char, row::Integer, col::Integer;
-    style::Style=Style(; background=screen_background(), foreground=screen_foreground())
+    style::Style=Style(; background=screen_color(2), foreground=screen_color(1))
 )
     screen = SCREEN[]
-    if 0 < row <= screen.height && 0 < col <= screen.width
+    height, width = screen_size()
+    if 0 < row <= height && 0 < col <= width
         screen.buffers[screen.current[]][col, row] = Cell(char, style)
     end
     nothing
 end
 
 function screen_string(str::String, row::Integer, col::Integer;
-    style::Style=Style(; background=screen_background(), foreground=screen_foreground()),
+    style::Style=Style(; background=screen_color(2), foreground=screen_color(1)),
     width::Integer=length(str)
 )
     for (index, char) in enumerate(rpad(str, width))
@@ -255,15 +249,15 @@ function screen_string(str::String, row::Integer, col::Integer;
     nothing
 end
 
-function screen_box_clear(startrow::Integer, startcol::Integer, height::Integer, width::Integer;
-    style::Style=Style(; background=screen_background(), foreground=screen_foreground())
+function screen_box_clear(startrow::Integer=1, startcol::Integer=1, height::Integer=screen_size(1), width::Integer=screen_size(2);
+    style::Style=Style(; background=screen_color(2), foreground=screen_color(1))
 )
     screen_box(startrow, startcol, height, width; type=(' ', ' ', ' ', ' ', ' ', ' '), style)
     nothing
 end
 
 function screen_box(startrow::Integer, startcol::Integer, height::Integer, width::Integer;
-    type::NTuple{6,Char}=LIGHT, style::Style=Style(; background=screen_background(), foreground=screen_foreground())
+    type::NTuple{6,Char}=LIGHT, style::Style=Style(; background=screen_color(2), foreground=screen_color(1))
 )
     screen_string(type[1] * type[2]^(width - 2) * type[3], startrow, startcol; style)
     for row in startrow+1:startrow+height-2
@@ -277,20 +271,26 @@ function screen_input()
     take!(SCREEN[].inputs)
 end
 
-function screen_width()
-    SCREEN[].width
+function screen_size(dim::Integer=0)
+    height, width = displaysize(SCREEN[].terminal)
+    if dim === 1
+        height
+    elseif dim === 2
+        width
+    else
+        height, width
+    end
 end
 
-function screen_height()
-    SCREEN[].height
-end
-
-function screen_foreground()
-    SCREEN[].foreground
-end
-
-function screen_background()
-    SCREEN[].background
+function screen_color(dim::Integer=0)
+    screen = SCREEN[]
+    if dim === 1
+        screen.foreground
+    elseif dim === 2
+        screen.background
+    else
+        screen.foreground, screen.background
+    end
 end
 
 end
