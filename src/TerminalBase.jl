@@ -1,16 +1,44 @@
 module TerminalBase
 
-import REPL
+import REPL.Terminals
 
+export UP, DOWN, RIGHT, LEFT, PGUP, PGDN, ENTER, BACKSPACE, DELETE, INSERT
+export ESCAPE, TAB, SHIFT_TAB, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10
 export BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
-export BRIGHTBLACK, BRIGHTRED, BRIGHTGREEN, BRIGHTYELLOW, BRIGHTBLUE, BRIGHTMAGENTA, BRIGHTCYAN, BRIGHTWHITE
-export BOX_LIGHT, BOX_ROUNDED, BOX_HEAVY, BOX_DOUBLE
+export BRIGHT_BLACK, BRIGHT_RED, BRIGHT_GREEN, BRIGHT_YELLOW, BRIGHT_BLUE, BRIGHT_MAGENTA, BRIGHT_CYAN, BRIGHT_WHITE
+export LIGHT, ROUNDED, HEAVY, DOUBLE
 export Style, Color256, ColorRGB
-export screen_init, screen_update, screen_box, screen_string, screen_char, screen_input, screen_cls
+export screen_init, screen_update, screen_box, screen_string, screen_char, screen_input, screen_box_clear
 export screen_foreground, screen_background, screen_width, screen_height
 
+const UP = "\e[A"
+const DOWN = "\e[B"
+const RIGHT = "\e[C"
+const LEFT = "\e[D"
+const HOME = "\e[H"
+const END = "\e[F"
+const PGUP = "\e[5~"
+const PGDN = "\e[6~"
+const ENTER = "\r"
+const BACKSPACE = "\x7f"
+const DELETE = "\e[3~"
+const INSERT = "\uf746"
+const ESCAPE = "\e"
+const TAB = "\t"
+const SHIFT_TAB = "\e[Z"
+const F1 = "\eOP"
+const F2 = "\eOQ"
+const F3 = "\eOR"
+const F4 = "\eOS"
+const F5 = "\e[15~"
+const F6 = "\e[17~"
+const F7 = "\e[18~"
+const F8 = "\e[19~"
+const F9 = "\e[20~"
+const F10 = "\e[21~"
+
 struct TerminalCommand
-    v::Union{Char, String}
+    v::String
 end
 
 function Base.show(io::IO, cmd::TerminalCommand)
@@ -46,14 +74,14 @@ const BLUE = Color256(4)
 const MAGENTA = Color256(5)
 const CYAN = Color256(6)
 const WHITE = Color256(7)
-const BRIGHTBLACK = Color256(8)
-const BRIGHTRED = Color256(9)
-const BRIGHTGREEN = Color256(10)
-const BRIGHTYELLOW = Color256(11)
-const BRIGHTBLUE = Color256(12)
-const BRIGHTMAGENTA = Color256(13)
-const BRIGHTCYAN = Color256(14)
-const BRIGHTWHITE = Color256(15)
+const BRIGHT_BLACK = Color256(8)
+const BRIGHT_RED = Color256(9)
+const BRIGHT_GREEN = Color256(10)
+const BRIGHT_YELLOW = Color256(11)
+const BRIGHT_BLUE = Color256(12)
+const BRIGHT_MAGENTA = Color256(13)
+const BRIGHT_CYAN = Color256(14)
+const BRIGHT_WHITE = Color256(15)
 
 struct Style
     bold::Bool
@@ -105,7 +133,7 @@ function copy!(from::Matrix{Cell}, to::Matrix{Cell})
 end
 
 struct Screen
-    terminal::REPL.Terminals.TTYTerminal
+    terminal::Terminals.TTYTerminal
     width::Int
     height::Int
     background::Color
@@ -121,7 +149,7 @@ function __init__()
 end
 
 function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Color=GREEN)
-    terminal = REPL.Terminals.TTYTerminal(get(ENV, "TERM", Sys.iswindows() ? "" : "dumb"), stdin, stdout, stderr)
+    terminal = Terminals.TTYTerminal(get(ENV, "TERM", Sys.iswindows() ? "" : "dumb"), stdin, stdout, stderr)
     height, width = displaysize(terminal)
     buffers = (fill(Cell(char, Style(; background, foreground)), width, height),
         fill(Cell(char, Style(; background, foreground)), width, height),
@@ -129,16 +157,16 @@ function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Colo
     )
     inputs = Channel{String}()
     SCREEN[] = Screen(terminal, width, height, background, foreground, buffers, Ref(1), inputs)
-    REPL.Terminals.raw!(terminal, true)
-    print(terminal, TerminalCommand("?1049h"))
+    Terminals.raw!(terminal, true)
+    #print(terminal, TerminalCommand("?1049h"))
     print(terminal, TerminalCommand("?25l"))
     print(terminal, TerminalCommand("?1000h"))
     print(terminal, TerminalCommand("2J"))
-    print(terminal, TerminalCommand('H'))
+    print(terminal, TerminalCommand("H"))
     print(terminal, TerminalCommand("38;"), foreground, 'm')
     print(terminal, TerminalCommand("48;"), background, 'm')
     print(terminal, char^(height * width))
-    print(terminal, TerminalCommand('H'))
+    print(terminal, TerminalCommand("H"))
     @async let
         io = IOBuffer()
         terminal = SCREEN[].terminal
@@ -160,14 +188,14 @@ function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Colo
         print(terminal, TerminalCommand("?1000l"))
         print(terminal, TerminalCommand("?25h"))
         print(terminal, TerminalCommand("?1049l"))
-        REPL.Terminals.raw!(terminal, false)
+        Terminals.raw!(terminal, false)
     end
     nothing
 end
 
 const SCREEN = Ref{Screen}()
 
-function screen_update()
+function screen_update(row::Integer=0, col::Integer=0)
     screen = SCREEN[]
     current = screen.buffers[screen.current[]]
     previous = screen.buffers[mod(screen.current[] - 2, 3)+1]
@@ -176,7 +204,7 @@ function screen_update()
     style = nothing
     oldindex = 0
     io = IOBuffer()
-    print(io, TerminalCommand('H'))
+    print(io, TerminalCommand("H"))
     for (index, cell) in enumerate(current)
         n, m = divrem(index - 1, screen.width)
         if cell !== previous[index]
@@ -191,15 +219,21 @@ function screen_update()
             oldindex = index
         end
     end
-    print(io, TerminalCommand('H'))
+    if row === 0 || col === 0
+        print(io, TerminalCommand("H"))
+        print(io, TerminalCommand("?25l"))
+    else
+        print(io, TerminalCommand(string(row) * ';' * string(col) * 'H'))
+        print(io, TerminalCommand("?25h"))
+    end
     print(screen.terminal, String(take!(io)))
     nothing
 end
 
-const BOX_LIGHT = ('┌', '─', '┐', '│', '└', '┘')
-const BOX_ROUNDED = ('╭', '─', '╮', '│', '╰', '╯')
-const BOX_HEAVY = ('┏', '━', '┓', '┃', '┗', '┛')
-const BOX_DOUBLE = ('╔', '═', '╗', '║', '╚', '╝')
+const LIGHT = ('┌', '─', '┐', '│', '└', '┘')
+const ROUNDED = ('╭', '─', '╮', '│', '╰', '╯')
+const HEAVY = ('┏', '━', '┓', '┃', '┗', '┛')
+const DOUBLE = ('╔', '═', '╗', '║', '╚', '╝')
 
 function screen_char(char::Char, row::Integer, col::Integer;
     style::Style=Style(; background=screen_background(), foreground=screen_foreground())
@@ -212,25 +246,24 @@ function screen_char(char::Char, row::Integer, col::Integer;
 end
 
 function screen_string(str::String, row::Integer, col::Integer;
-    style::Style=Style(; background=screen_background(), foreground=screen_foreground())
+    style::Style=Style(; background=screen_background(), foreground=screen_foreground()),
+    width::Integer=length(str)
 )
-    for (index, char) in enumerate(str)
+    for (index, char) in enumerate(rpad(str, width))
         screen_char(char, row, col + index - 1; style)
     end
     nothing
 end
 
-function screen_cls(startrow::Integer, startcol::Integer, height::Integer, width::Integer;
+function screen_box_clear(startrow::Integer, startcol::Integer, height::Integer, width::Integer;
     style::Style=Style(; background=screen_background(), foreground=screen_foreground())
 )
-    for row in startrow:startrow+height-1
-        screen_string(' '^width, row, startcol; style)
-    end
+    screen_box(startrow, startcol, height, width; type=(' ', ' ', ' ', ' ', ' ', ' '), style)
     nothing
 end
 
 function screen_box(startrow::Integer, startcol::Integer, height::Integer, width::Integer;
-    type::NTuple{6,Char}=BOX_LIGHT, style::Style=Style(; background=screen_background(), foreground=screen_foreground())
+    type::NTuple{6,Char}=LIGHT, style::Style=Style(; background=screen_background(), foreground=screen_foreground())
 )
     screen_string(type[1] * type[2]^(width - 2) * type[3], startrow, startcol; style)
     for row in startrow+1:startrow+height-2
