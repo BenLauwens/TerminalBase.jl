@@ -2,40 +2,40 @@ module TerminalBase
 
 import REPL.Terminals
 
-export UP, DOWN, RIGHT, LEFT, PGUP, PGDN, ENTER, BACKSPACE, DELETE, INSERT
-export ESCAPE, TAB, SHIFT_TAB, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10
+export KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT, KEY_PGUP, KEY_PGDN, KEY_ENTER, KEY_BACKSPACE, KEY_DELETE, KEY_INSERT
+export KEY_ESCAPE, KEY_TAB, KEY_SHIFT_TAB, KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9, KEY_F10
 export BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
 export BRIGHT_BLACK, BRIGHT_RED, BRIGHT_GREEN, BRIGHT_YELLOW, BRIGHT_BLUE, BRIGHT_MAGENTA, BRIGHT_CYAN, BRIGHT_WHITE
-export LIGHT, ROUNDED, HEAVY, DOUBLE
+export BORDER_LIGHT, BORDER_ROUNDED, BORDER_HEAVY, BORDER_DOUBLE, BORDER_NONE
 export Style, Color, Color256, ColorRGB
-export screen_init, screen_update, screen_box, screen_string, screen_char, screen_input, screen_box_clear
+export screen_init, screen_refresh, screen_box, screen_string, screen_char, screen_input, screen_box_clear
 export screen_color, screen_size
 
-const UP = "\e[A"
-const DOWN = "\e[B"
-const RIGHT = "\e[C"
-const LEFT = "\e[D"
-const HOME = "\e[H"
-const END = "\e[F"
-const PGUP = "\e[5~"
-const PGDN = "\e[6~"
-const ENTER = "\r"
-const BACKSPACE = "\x7f"
-const DELETE = "\e[3~"
-const INSERT = "\uf746"
-const ESCAPE = "\e"
-const TAB = "\t"
-const SHIFT_TAB = "\e[Z"
-const F1 = "\eOP"
-const F2 = "\eOQ"
-const F3 = "\eOR"
-const F4 = "\eOS"
-const F5 = "\e[15~"
-const F6 = "\e[17~"
-const F7 = "\e[18~"
-const F8 = "\e[19~"
-const F9 = "\e[20~"
-const F10 = "\e[21~"
+const KEY_UP = "\e[A"
+const KEY_DOWN = "\e[B"
+const KEY_RIGHT = "\e[C"
+const KEY_LEFT = "\e[D"
+const KEY_HOME = "\e[H"
+const KEY_END = "\e[F"
+const KEY_PGUP = "\e[5~"
+const KEY_PGDN = "\e[6~"
+const KEY_ENTER = "\r"
+const KEY_BACKSPACE = "\x7f"
+const KEY_DELETE = "\e[3~"
+const KEY_INSERT = "\uf746"
+const KEY_ESCAPE = "\e"
+const KEY_TAB = "\t"
+const KEY_SHIFT_TAB = "\e[Z"
+const KEY_F1 = "\eOP"
+const KEY_F2 = "\eOQ"
+const KEY_F3 = "\eOR"
+const KEY_F4 = "\eOS"
+const KEY_F5 = "\e[15~"
+const KEY_F6 = "\e[17~"
+const KEY_F7 = "\e[18~"
+const KEY_F8 = "\e[19~"
+const KEY_F9 = "\e[20~"
+const KEY_F10 = "\e[21~"
 
 struct TerminalCommand
     v::String
@@ -151,7 +151,7 @@ function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Colo
     inputs = Channel{String}()
     SCREEN[] = Screen(terminal, background, foreground, buffers, Ref(1), inputs)
     Terminals.raw!(terminal, true)
-    #print(terminal, TerminalCommand("?1049h"))
+    print(terminal, TerminalCommand("?1049h"))
     print(terminal, TerminalCommand("?25l"))
     print(terminal, TerminalCommand("?1000h"))
     print(terminal, TerminalCommand("2J"))
@@ -188,7 +188,7 @@ end
 
 const SCREEN = Ref{Screen}()
 
-function screen_update(row::Integer=0, col::Integer=0)
+function screen_refresh(row::Integer=0, col::Integer=0)
     screen = SCREEN[]
     current = screen.buffers[screen.current[]]
     previous = screen.buffers[mod(screen.current[] - 2, 3)+1]
@@ -223,10 +223,11 @@ function screen_update(row::Integer=0, col::Integer=0)
     nothing
 end
 
-const LIGHT = ('┌', '─', '┐', '│', '└', '┘')
-const ROUNDED = ('╭', '─', '╮', '│', '╰', '╯')
-const HEAVY = ('┏', '━', '┓', '┃', '┗', '┛')
-const DOUBLE = ('╔', '═', '╗', '║', '╚', '╝')
+const BORDER_LIGHT = ('┌', '─', '┐', '│', '└', '┘')
+const BORDER_ROUNDED = ('╭', '─', '╮', '│', '╰', '╯')
+const BORDER_HEAVY = ('┏', '━', '┓', '┃', '┗', '┛')
+const BORDER_DOUBLE = ('╔', '═', '╗', '║', '╚', '╝')
+const BORDER_NONE = (' ', ' ', ' ', ' ', ' ', ' ')
 
 function screen_char(char::Char, row::Integer, col::Integer;
     style::Style=Style(; background=screen_color(2), foreground=screen_color(1))
@@ -252,12 +253,12 @@ end
 function screen_box_clear(startrow::Integer=1, startcol::Integer=1, height::Integer=screen_size(1), width::Integer=screen_size(2);
     style::Style=Style(; background=screen_color(2), foreground=screen_color(1))
 )
-    screen_box(startrow, startcol, height, width; type=(' ', ' ', ' ', ' ', ' ', ' '), style)
+    screen_box(startrow, startcol, height, width; type=BORDER_NONE, style)
     nothing
 end
 
 function screen_box(startrow::Integer, startcol::Integer, height::Integer, width::Integer;
-    type::NTuple{6,Char}=LIGHT, style::Style=Style(; background=screen_color(2), foreground=screen_color(1))
+    type::NTuple{6,Char}=BORDER_LIGHT, style::Style=Style(; background=screen_color(2), foreground=screen_color(1))
 )
     screen_string(type[1] * type[2]^(width - 2) * type[3], startrow, startcol; style)
     for row in startrow+1:startrow+height-2
