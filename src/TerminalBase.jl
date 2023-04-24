@@ -151,7 +151,7 @@ function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Colo
     inputs = Channel{String}()
     SCREEN[] = Screen(terminal, background, foreground, buffers, Ref(1), inputs)
     Terminals.raw!(terminal, true)
-    print(terminal, TerminalCommand("?1049h"))
+    #print(terminal, TerminalCommand("?1049h"))
     print(terminal, TerminalCommand("?25l"))
     print(terminal, TerminalCommand("?1000h"))
     print(terminal, TerminalCommand("2J"))
