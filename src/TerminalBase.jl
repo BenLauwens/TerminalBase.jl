@@ -4,8 +4,8 @@ import REPL.Terminals
 
 export KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT, KEY_PGUP, KEY_PGDN, KEY_ENTER, KEY_BACKSPACE, KEY_DELETE, KEY_INSERT
 export KEY_ESCAPE, KEY_TAB, KEY_SHIFT_TAB, KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9, KEY_F10
-export BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
-export BRIGHT_BLACK, BRIGHT_RED, BRIGHT_GREEN, BRIGHT_YELLOW, BRIGHT_BLUE, BRIGHT_MAGENTA, BRIGHT_CYAN, BRIGHT_WHITE
+export COLOR_BLACK, COLOR_RED, COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE, COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE
+export COLOR_BRIGHT_BLACK, COLOR_BRIGHT_RED, COLOR_BRIGHT_GREEN, COLOR_BRIGHT_YELLOW, COLOR_BRIGHT_BLUE, COLOR_BRIGHT_MAGENTA, COLOR_BRIGHT_CYAN, COLOR_BRIGHT_WHITE
 export BORDER_LIGHT, BORDER_ROUNDED, BORDER_HEAVY, BORDER_DOUBLE, BORDER_NONE
 export Style, Color, Color256, ColorRGB
 export screen_init, screen_refresh, screen_box, screen_string, screen_char, screen_input, screen_box_clear
@@ -66,22 +66,22 @@ function Base.show(io::IO, color::ColorRGB)
 end
 
 
-const BLACK = Color256(0)
-const RED = Color256(1)
-const GREEN = Color256(2)
-const YELLOW = Color256(3)
-const BLUE = Color256(4)
-const MAGENTA = Color256(5)
-const CYAN = Color256(6)
-const WHITE = Color256(7)
-const BRIGHT_BLACK = Color256(8)
-const BRIGHT_RED = Color256(9)
-const BRIGHT_GREEN = Color256(10)
-const BRIGHT_YELLOW = Color256(11)
-const BRIGHT_BLUE = Color256(12)
-const BRIGHT_MAGENTA = Color256(13)
-const BRIGHT_CYAN = Color256(14)
-const BRIGHT_WHITE = Color256(15)
+const COLOR_BLACK = Color256(0)
+const COLOR_RED = Color256(1)
+const COLOR_GREEN = Color256(2)
+const COLOR_YELLOW = Color256(3)
+const COLOR_BLUE = Color256(4)
+const COLOR_MAGENTA = Color256(5)
+const COLOR_CYAN = Color256(6)
+const COLOR_WHITE = Color256(7)
+const COLOR_BRIGHT_BLACK = Color256(8)
+const COLOR_BRIGHT_RED = Color256(9)
+const COLOR_BRIGHT_GREEN = Color256(10)
+const COLOR_BRIGHT_YELLOW = Color256(11)
+const COLOR_BRIGHT_BLUE = Color256(12)
+const COLOR_BRIGHT_MAGENTA = Color256(13)
+const COLOR_BRIGHT_CYAN = Color256(14)
+const COLOR_BRIGHT_WHITE = Color256(15)
 
 struct Style
     bold::Bool
@@ -94,8 +94,8 @@ struct Style
         italic::Bool=false,
         underline::Bool=false,
         strike::Bool=false,
-        background::Color=BLACK,
-        foreground::Color=GREEN
+        background::Color=COLOR_BLACK,
+        foreground::Color=COLOR_GREEN
     )
         new(bold, italic, underline, strike, background, foreground)
     end
@@ -141,7 +141,7 @@ struct Screen
     inputs::Channel{String}
 end
 
-function screen_init(; char::Char=' ', background::Color=BLACK, foreground::Color=GREEN)
+function screen_init(; char::Char=' ', background::Color=COLOR_BLACK, foreground::Color=COLOR_GREEN)
     terminal = Terminals.TTYTerminal(get(ENV, "TERM", Sys.iswindows() ? "" : "dumb"), stdin, stdout, stderr)
     height, width = displaysize(terminal)
     buffers = (fill(Cell(char, Style(; background, foreground)), width, height),
