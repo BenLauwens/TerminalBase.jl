@@ -2,9 +2,9 @@ using TerminalBase
 
 let
     screen_init()
-    screen_char('a', 1, 1; style=Style(;bold=true, background=RED, foreground=WHITE))
-    screen_char('b', 1, 2; style=Style(;italic=true, background=WHITE, foreground=RED))
-    screen_box(3, 10, 5, 30; style=Style(;background=BLUE, foreground=WHITE), type=BORDER_DOUBLE)
+    screen_char('a', 1, 1; style=Style(;bold=true, background=COLOR_RED, foreground=COLOR_WHITE))
+    screen_char('b', 1, 2; style=Style(;italic=true, background=COLOR_WHITE, foreground=COLOR_RED))
+    screen_box(3, 10, 5, 30; style=Style(;background=COLOR_BLUE, foreground=COLOR_WHITE), type=BORDER_DOUBLE)
     screen_box(5, 50, 4, 50; type=BORDER_HEAVY)
     screen_refresh()
     sleep(2)
@@ -12,9 +12,11 @@ let
     x = 1
     n = 2
     m = 110
-    screen_box(n, m, 7, 60; style=Style(;background=WHITE, foreground=RED), type=BORDER_ROUNDED)
+    screen_box(n, m, 7, 60; style=Style(;background=COLOR_WHITE, foreground=COLOR_RED), type=BORDER_ROUNDED)
     screen_refresh()
     while true
+        y = 1
+        x = 1
         c = screen_input()
         screen_box_clear(n, m, 7, 60)
         if c === "q"
@@ -34,8 +36,10 @@ let
             y = Int(mouse[2]) - 32
             x = Int(mouse[1]) - 32
             screen_string("x = " * string(x) * "; y = " * string(y), screen_size(1), 5; width=15)
+        else
+            continue
         end
-        screen_box(n, m, 7, 60; style=Style(;background=WHITE, foreground=RED), type=BORDER_ROUNDED)
+        screen_box(n, m, 7, 60; style=Style(;background=COLOR_WHITE, foreground=COLOR_RED), type=BORDER_ROUNDED)
         screen_string(repr(c), 10, 10; width=10)
         screen_refresh(y, x)
     end
