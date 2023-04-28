@@ -180,7 +180,7 @@ function screen_init(; char::Char=' ', background::Color=COLOR_BLACK, foreground
         terminal = SCREEN[].terminal
         print(terminal, TerminalCommand("?1000l"))
         print(terminal, TerminalCommand("?25h"))
-        print(terminal, TerminalCommand("?1049l"))
+        #print(terminal, TerminalCommand("?1049l"))
         Terminals.raw!(terminal, false)
     end
     nothing
