@@ -196,10 +196,11 @@ function screen_refresh(row::Integer=0, col::Integer=0)
     copy!(current, screen.buffers[screen.current[]])
     style = nothing
     oldindex = 0
+    width = screen_size(2)
     io = IOBuffer()
     print(io, TerminalCommand("H"))
     for (index, cell) in enumerate(current)
-        n, m = divrem(index - 1, screen_size(2))
+        n, m = divrem(index - 1, width)
         if cell !== previous[index]
             if oldindex !== index - 1
                 print(io, TerminalCommand(string(n + 1) * ';' * string(m + 1) * 'H'))
